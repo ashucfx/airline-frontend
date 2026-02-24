@@ -2,13 +2,27 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { useEffect, useState } from 'react';
-import { flightApi, bookingApiService, airplaneApi } from '@/lib/api';
+import { flightApi, bookingApiService, airplaneApi, gatewayApi } from '@/lib/api';
+
+interface ServiceStatus {
+  gateway: boolean;
+  flights: boolean;
+  booking: boolean;
+  loading: boolean;
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
     totalFlights: 0,
     totalBookings: 0,
     totalAirplanes: 0,
+    loading: true,
+  });
+
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
+    gateway: false,
+    flights: false,
+    booking: false,
     loading: true,
   });
 
@@ -22,18 +36,37 @@ export default function DashboardPage() {
         ]);
 
         setStats({
-          totalFlights: flightsRes.data?.length || 0,
-          totalBookings: bookingsRes.data?.length || 0,
-          totalAirplanes: airplanesRes.data?.length || 0,
+          totalFlights: Array.isArray(flightsRes.data) ? flightsRes.data.length : 0,
+          totalBookings: Array.isArray(bookingsRes.data) ? bookingsRes.data.length : 0,
+          totalAirplanes: Array.isArray(airplanesRes.data) ? airplanesRes.data.length : 0,
           loading: false,
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
         setStats(prev => ({ ...prev, loading: false }));
       }
     };
 
+    const checkServiceStatus = async () => {
+      try {
+        const [gatewayRes, flightsRes, bookingRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/health`).then(r => r.ok).catch(() => false),
+          fetch(`${process.env.NEXT_PUBLIC_FLIGHTS_SERVICE_URL}/health`).then(r => r.ok).catch(() => false),
+          fetch(`${process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL}/health`).then(r => r.ok).catch(() => false),
+        ]);
+
+        setServiceStatus({
+          gateway: gatewayRes,
+          flights: flightsRes,
+          booking: bookingRes,
+          loading: false,
+        });
+      } catch (error) {
+        setServiceStatus(prev => ({ ...prev, loading: false }));
+      }
+    };
+
     fetchStats();
+    checkServiceStatus();
   }, []);
 
   const StatCard = ({ title, value, icon, color }: any) => (
@@ -47,6 +80,18 @@ export default function DashboardPage() {
         </div>
         <div className="text-4xl">{icon}</div>
       </div>
+    </div>
+  );
+
+  const ServiceStatusItem = ({ name, isOnline }: { name: string; isOnline: boolean }) => (
+    <div className={`flex items-center justify-between p-3 rounded-lg ${isOnline ? 'bg-green-50' : 'bg-red-50'}`}>
+      <span className="flex items-center">
+        <span className={`w-3 h-3 rounded-full mr-3 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        <span className="font-medium text-gray-700">{name}</span>
+      </span>
+      <span className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
+        {serviceStatus.loading ? 'Checking...' : (isOnline ? 'Online' : 'Offline')}
+      </span>
     </div>
   );
 
@@ -107,27 +152,9 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl shadow-md p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">System Status</h2>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <span className="flex items-center">
-                <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                <span className="font-medium text-gray-700">API Gateway</span>
-              </span>
-              <span className="text-sm text-green-600">Online</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <span className="flex items-center">
-                <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                <span className="font-medium text-gray-700">Flights Service</span>
-              </span>
-              <span className="text-sm text-green-600">Online</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <span className="flex items-center">
-                <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                <span className="font-medium text-gray-700">Booking Service</span>
-              </span>
-              <span className="text-sm text-green-600">Online</span>
-            </div>
+            <ServiceStatusItem name="API Gateway" isOnline={serviceStatus.gateway} />
+            <ServiceStatusItem name="Flights Service" isOnline={serviceStatus.flights} />
+            <ServiceStatusItem name="Booking Service" isOnline={serviceStatus.booking} />
           </div>
         </div>
       </div>

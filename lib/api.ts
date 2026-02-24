@@ -1,9 +1,9 @@
 // API Configuration and Utilities
 
 const API_CONFIG = {
-  gateway: process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8000',
-  flights: process.env.NEXT_PUBLIC_FLIGHTS_SERVICE_URL || 'http://localhost:3000',
-  booking: process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL || 'http://localhost:3001',
+  gateway: process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://api-gateway:8000',
+  flights: process.env.NEXT_PUBLIC_FLIGHTS_SERVICE_URL || 'http://flights-service:3000',
+  booking: process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL || 'http://booking-service:3001',
 };
 
 interface ApiResponse<T = any> {
@@ -77,7 +77,14 @@ class ApiClient {
 
   async put<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'PUT',
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async patch<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
       body: JSON.stringify(body),
     });
   }
