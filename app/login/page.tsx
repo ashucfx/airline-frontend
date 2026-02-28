@@ -18,9 +18,9 @@ export default function LoginPage() {
 
     try {
       const response = await authApi.login(email, password);
-      
-      if (response.success && response.data?.token) {
-        localStorage.setItem('authToken', response.data.token);
+
+      if (response.success && (response.data as any)?.token) {
+        localStorage.setItem('authToken', (response.data as any).token);
         router.push('/dashboard');
       } else {
         setError(response.error || 'Login failed');

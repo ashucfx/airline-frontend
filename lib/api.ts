@@ -35,7 +35,7 @@ class ApiClient {
       };
 
       if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
       }
 
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -117,10 +117,10 @@ export const bookingApi = new ApiClient('booking');
 export const authApi = {
   login: (email: string, password: string) =>
     gatewayApi.post('/api/v1/user/signin', { email, password }),
-  
+
   signup: (data: { email: string; password: string; firstName: string; lastName: string }) =>
     gatewayApi.post('/api/v1/user/signup', data),
-  
+
   logout: () => {
     gatewayApi.clearToken();
   },
@@ -130,19 +130,19 @@ export const authApi = {
 export const flightApi = {
   getAll: (params?: { page?: number; limit?: number }) =>
     flightsApi.get(`/api/v1/flights${params ? `?page=${params.page}&limit=${params.limit}` : ''}`),
-  
+
   getById: (id: string) =>
     flightsApi.get(`/api/v1/flights/${id}`),
-  
+
   create: (data: any) =>
     flightsApi.post('/api/v1/flights', data),
-  
+
   update: (id: string, data: any) =>
     flightsApi.put(`/api/v1/flights/${id}`, data),
-  
+
   delete: (id: string) =>
     flightsApi.delete(`/api/v1/flights/${id}`),
-  
+
   search: (params: { from: string; to: string; date: string }) =>
     flightsApi.get(`/api/v1/flights/search?from=${params.from}&to=${params.to}&date=${params.date}`),
 };

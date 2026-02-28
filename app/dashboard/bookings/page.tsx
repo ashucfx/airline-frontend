@@ -22,7 +22,7 @@ export default function BookingsPage() {
       try {
         const response = await bookingApiService.getAll();
         if (response.success) {
-          setBookings(response.data || []);
+          setBookings((response.data as Booking[]) || []);
         }
       } catch (error) {
         console.error('Error fetching bookings:', error);

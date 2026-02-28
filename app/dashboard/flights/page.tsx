@@ -26,7 +26,7 @@ export default function FlightsPage() {
       try {
         const response = await flightApi.getAll();
         if (response.success) {
-          setFlights(response.data || []);
+          setFlights((response.data as Flight[]) || []);
         }
       } catch (error) {
         console.error('Error fetching flights:', error);
