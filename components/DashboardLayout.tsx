@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -20,7 +20,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ email?: string } | null>(null);
 
   useEffect(() => {
     // Check authentication
@@ -74,8 +73,8 @@ export default function DashboardLayout({
                   👤
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium">Admin</p>
-                  <p className="text-xs text-blue-300">admin@airline.com</p>
+                  <p className="text-sm font-medium">Operator</p>
+                  <p className="text-xs text-blue-300">Authenticated Session</p>
                 </div>
               </div>
               <button

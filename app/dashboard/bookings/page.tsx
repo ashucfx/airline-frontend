@@ -16,22 +16,38 @@ interface Booking {
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    setError('');
+    const response = await bookingApiService.getAll();
+    if (!response.success) {
+      setBookings([]);
+      setError(response.error || 'Unable to load bookings from service');
+      setLoading(false);
+      return;
+    }
+
+    setBookings((response.data as Booking[]) || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const response = await bookingApiService.getAll();
-        if (response.success) {
-          setBookings((response.data as Booking[]) || []);
-        }
-      } catch (error) {
-        console.error('Error fetching bookings:', error);
-      } finally {
+    const initializeBookings = async () => {
+      const response = await bookingApiService.getAll();
+      if (!response.success) {
+        setBookings([]);
+        setError(response.error || 'Unable to load bookings from service');
         setLoading(false);
+        return;
       }
+
+      setBookings((response.data as Booking[]) || []);
+      setLoading(false);
     };
 
-    fetchBookings();
+    void initializeBookings();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -59,6 +75,18 @@ export default function BookingsPage() {
             ➕ New Booking
           </button>
         </div>
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-700">{error}</p>
+            <button
+              onClick={fetchBookings}
+              className="mt-3 rounded bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-12">

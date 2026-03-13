@@ -20,22 +20,38 @@ interface Flight {
 export default function FlightsPage() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchFlights = async () => {
+    setLoading(true);
+    setError('');
+    const response = await flightApi.getAll();
+    if (!response.success) {
+      setFlights([]);
+      setError(response.error || 'Unable to load flights from service');
+      setLoading(false);
+      return;
+    }
+
+    setFlights((response.data as Flight[]) || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchFlights = async () => {
-      try {
-        const response = await flightApi.getAll();
-        if (response.success) {
-          setFlights((response.data as Flight[]) || []);
-        }
-      } catch (error) {
-        console.error('Error fetching flights:', error);
-      } finally {
+    const initializeFlights = async () => {
+      const response = await flightApi.getAll();
+      if (!response.success) {
+        setFlights([]);
+        setError(response.error || 'Unable to load flights from service');
         setLoading(false);
+        return;
       }
+
+      setFlights((response.data as Flight[]) || []);
+      setLoading(false);
     };
 
-    fetchFlights();
+    void initializeFlights();
   }, []);
 
   return (
@@ -50,6 +66,18 @@ export default function FlightsPage() {
             ➕ Add New Flight
           </button>
         </div>
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-700">{error}</p>
+            <button
+              onClick={fetchFlights}
+              className="mt-3 rounded bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-12">
