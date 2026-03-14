@@ -15,6 +15,9 @@ export default function AirplanesPage() {
   const [airplanes, setAirplanes] = useState<Airplane[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [formData, setFormData] = useState({ modelNumber: '', capacity: 0 });
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const loadAirplanes = async () => {
     setLoading(true);
@@ -26,27 +29,35 @@ export default function AirplanesPage() {
       setLoading(false);
       return;
     }
-
     setAirplanes((response.data as Airplane[]) || []);
     setLoading(false);
   };
 
   useEffect(() => {
     const initializeAirplanes = async () => {
-      const response = await airplaneApi.getAll();
-      if (!response.success) {
-        setAirplanes([]);
-        setError(response.error || 'Failed to fetch airplanes');
-        setLoading(false);
-        return;
-      }
-
-      setAirplanes((response.data as Airplane[]) || []);
-      setLoading(false);
+      await loadAirplanes();
     };
 
     void initializeAirplanes();
   }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    if (!formData.modelNumber.trim() || formData.capacity <= 0) {
+      setFormError('Model number and capacity > 0 are required');
+      return;
+    }
+    setFormLoading(true);
+    const response = await airplaneApi.create({ modelNumber: formData.modelNumber.trim(), capacity: formData.capacity });
+    setFormLoading(false);
+    if (!response.success) {
+      setFormError(response.error || 'Failed to create airplane');
+      return;
+    }
+    setFormData({ modelNumber: '', capacity: 0 });
+    await loadAirplanes();
+  };
 
   return (
     <DashboardLayout>
@@ -62,6 +73,38 @@ export default function AirplanesPage() {
           >
             Refresh
           </button>
+        </div>
+
+        {/* Add Airplane Form */}
+        <div className="rounded-xl bg-white p-6 shadow">
+          <h2 className="mb-3 text-base font-semibold text-gray-700">Add New Airplane</h2>
+          {formError && <p className="mb-2 text-sm text-red-600">{formError}</p>}
+          <form onSubmit={handleCreate} className="flex gap-3 flex-wrap">
+            <input
+              type="text"
+              required
+              value={formData.modelNumber}
+              onChange={(e) => setFormData({ ...formData, modelNumber: e.target.value })}
+              placeholder="Model number (e.g. Boeing 737)"
+              className="flex-1 min-w-40 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="number"
+              required
+              min={1}
+              value={formData.capacity || ''}
+              onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
+              placeholder="Capacity (e.g. 180)"
+              className="w-40 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              disabled={formLoading}
+              className="rounded-lg bg-green-600 px-5 py-2 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {formLoading ? 'Adding...' : '+ Add Airplane'}
+            </button>
+          </form>
         </div>
 
         {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>}

@@ -1,12 +1,14 @@
 // API Configuration and Utilities
+// All calls go through Next.js proxy rewrites (/proxy/*) → server-side forwarding to backend services.
+// This avoids CORS issues and baked-in NEXT_PUBLIC_ env vars in the Docker build.
 
 const API_CONFIG = {
-  gateway: process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://api-gateway:8000',
-  flights: process.env.NEXT_PUBLIC_FLIGHTS_SERVICE_URL || 'http://flights-service:3000',
-  booking: process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL || 'http://booking-service:3001',
+  gateway: '/proxy/gateway',
+  flights: '/proxy/flights',
+  booking: '/proxy/booking',
 };
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -68,21 +70,21 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  async post<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
-  async put<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
   }
 
-  async patch<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+  async patch<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(body),
@@ -134,10 +136,10 @@ export const flightApi = {
   getById: (id: string) =>
     flightsApi.get(`/api/v1/flights/${id}`),
 
-  create: (data: any) =>
+  create: (data: Record<string, unknown>) =>
     flightsApi.post('/api/v1/flights', data),
 
-  update: (id: string, data: any) =>
+  update: (id: string, data: Record<string, unknown>) =>
     flightsApi.put(`/api/v1/flights/${id}`, data),
 
   delete: (id: string) =>
@@ -151,8 +153,8 @@ export const flightApi = {
 export const airportApi = {
   getAll: () => flightsApi.get('/api/v1/airports'),
   getById: (id: string) => flightsApi.get(`/api/v1/airports/${id}`),
-  create: (data: any) => flightsApi.post('/api/v1/airports', data),
-  update: (id: string, data: any) => flightsApi.put(`/api/v1/airports/${id}`, data),
+  create: (data: Record<string, unknown>) => flightsApi.post('/api/v1/airports', data),
+  update: (id: string, data: Record<string, unknown>) => flightsApi.put(`/api/v1/airports/${id}`, data),
   delete: (id: string) => flightsApi.delete(`/api/v1/airports/${id}`),
 };
 
@@ -180,8 +182,10 @@ export const airplaneApi = {
 export const bookingApiService = {
   getAll: () => bookingApi.get('/api/v1/bookings'),
   getById: (id: string) => bookingApi.get(`/api/v1/bookings/${id}`),
-  create: (data: { flightId: string; userId: string; noOfSeats: number }) =>
+  create: (data: { flightId: string | number; userId: string | number; noofSeats: number }) =>
     bookingApi.post('/api/v1/bookings', data),
+  makePayment: (data: { totalCost: number; userId: string | number; bookingId: string | number }) =>
+    bookingApi.post('/api/v1/bookings/payments', data),
   cancel: (id: string) => bookingApi.delete(`/api/v1/bookings/${id}`),
 };
 

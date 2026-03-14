@@ -56,16 +56,11 @@ export default function AnalyticsPage() {
   };
 
   const checkHealth = async () => {
-    const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
-    const flightsUrl = process.env.NEXT_PUBLIC_FLIGHTS_SERVICE_URL;
-    const bookingsUrl = process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL;
-    const notificationUrl = process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL;
-
     const [gateway, flightsService, bookingsService, notification] = await Promise.all([
-      fetch(`${gatewayUrl}/health`).then((r) => r.ok).catch(() => false),
-      fetch(`${flightsUrl}/health`).then((r) => r.ok).catch(() => false),
-      fetch(`${bookingsUrl}/health`).then((r) => r.ok).catch(() => false),
-      notificationUrl ? fetch(`${notificationUrl}/health`).then((r) => r.ok).catch(() => false) : Promise.resolve(false),
+      fetch('/proxy/gateway/health').then((r) => r.ok).catch(() => false),
+      fetch('/proxy/flights/health').then((r) => r.ok).catch(() => false),
+      fetch('/proxy/booking/health').then((r) => r.ok).catch(() => false),
+      fetch('/proxy/notification/health').then((r) => r.ok).catch(() => false),
     ]);
 
     setServices({

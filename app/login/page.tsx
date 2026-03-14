@@ -19,13 +19,20 @@ export default function LoginPage() {
     try {
       const response = await authApi.login(email, password);
 
-      if (response.success && (response.data as any)?.token) {
-        localStorage.setItem('authToken', (response.data as any).token);
+      // Backend returns JWT as data directly (string) OR as { token: '...' }
+      const maybeObject =
+        response.data && typeof response.data === 'object'
+          ? (response.data as { token?: string })
+          : null;
+      const token = typeof response.data === 'string' ? response.data : maybeObject?.token;
+
+      if (response.success && token) {
+        localStorage.setItem('authToken', token);
         router.push('/dashboard');
       } else {
-        setError(response.error || 'Login failed');
+        setError(response.error || 'Invalid email or password');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred during login');
     } finally {
       setLoading(false);
@@ -33,7 +40,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-500 to-blue-700">
       <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">✈️</div>

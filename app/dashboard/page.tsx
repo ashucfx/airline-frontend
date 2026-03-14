@@ -2,13 +2,57 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { useEffect, useState } from 'react';
-import { flightApi, bookingApiService, airplaneApi, gatewayApi } from '@/lib/api';
+import { flightApi, bookingApiService, airplaneApi } from '@/lib/api';
 
 interface ServiceStatus {
   gateway: boolean;
   flights: boolean;
   booking: boolean;
   loading: boolean;
+}
+
+interface StatCardProps {
+  title: string;
+  value: number;
+  icon: string;
+  color: string;
+  loading: boolean;
+}
+
+function StatCard({ title, value, icon, color, loading }: StatCardProps) {
+  return (
+    <div className={`bg-white rounded-xl shadow-md p-6 border-l-4 ${color}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-3xl font-bold text-gray-800 mt-2">{loading ? '...' : value}</p>
+        </div>
+        <div className="text-4xl">{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceStatusItem({
+  name,
+  isOnline,
+  loading,
+}: {
+  name: string;
+  isOnline: boolean;
+  loading: boolean;
+}) {
+  return (
+    <div className={`flex items-center justify-between p-3 rounded-lg ${isOnline ? 'bg-green-50' : 'bg-red-50'}`}>
+      <span className="flex items-center">
+        <span className={`w-3 h-3 rounded-full mr-3 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        <span className="font-medium text-gray-700">{name}</span>
+      </span>
+      <span className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
+        {loading ? 'Checking...' : (isOnline ? 'Online' : 'Offline')}
+      </span>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -27,7 +71,7 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const initializeDashboard = async () => {
       try {
         const [flightsRes, bookingsRes, airplanesRes] = await Promise.all([
           flightApi.getAll(),
@@ -41,17 +85,15 @@ export default function DashboardPage() {
           totalAirplanes: Array.isArray(airplanesRes.data) ? airplanesRes.data.length : 0,
           loading: false,
         });
-      } catch (error) {
-        setStats(prev => ({ ...prev, loading: false }));
+      } catch {
+        setStats((prev) => ({ ...prev, loading: false }));
       }
-    };
 
-    const checkServiceStatus = async () => {
       try {
         const [gatewayRes, flightsRes, bookingRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/health`).then(r => r.ok).catch(() => false),
-          fetch(`${process.env.NEXT_PUBLIC_FLIGHTS_SERVICE_URL}/health`).then(r => r.ok).catch(() => false),
-          fetch(`${process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL}/health`).then(r => r.ok).catch(() => false),
+          fetch('/proxy/gateway/health').then((r) => r.ok).catch(() => false),
+          fetch('/proxy/flights/health').then((r) => r.ok).catch(() => false),
+          fetch('/proxy/booking/health').then((r) => r.ok).catch(() => false),
         ]);
 
         setServiceStatus({
@@ -60,40 +102,13 @@ export default function DashboardPage() {
           booking: bookingRes,
           loading: false,
         });
-      } catch (error) {
-        setServiceStatus(prev => ({ ...prev, loading: false }));
+      } catch {
+        setServiceStatus((prev) => ({ ...prev, loading: false }));
       }
     };
 
-    fetchStats();
-    checkServiceStatus();
+    void initializeDashboard();
   }, []);
-
-  const StatCard = ({ title, value, icon, color }: any) => (
-    <div className={`bg-white rounded-xl shadow-md p-6 border-l-4 ${color}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-800 mt-2">
-            {stats.loading ? '...' : value}
-          </p>
-        </div>
-        <div className="text-4xl">{icon}</div>
-      </div>
-    </div>
-  );
-
-  const ServiceStatusItem = ({ name, isOnline }: { name: string; isOnline: boolean }) => (
-    <div className={`flex items-center justify-between p-3 rounded-lg ${isOnline ? 'bg-green-50' : 'bg-red-50'}`}>
-      <span className="flex items-center">
-        <span className={`w-3 h-3 rounded-full mr-3 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
-        <span className="font-medium text-gray-700">{name}</span>
-      </span>
-      <span className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
-        {serviceStatus.loading ? 'Checking...' : (isOnline ? 'Online' : 'Offline')}
-      </span>
-    </div>
-  );
 
   return (
     <DashboardLayout>
@@ -110,18 +125,21 @@ export default function DashboardPage() {
             value={stats.totalFlights}
             icon="✈️"
             color="border-blue-500"
+            loading={stats.loading}
           />
           <StatCard
             title="Total Bookings"
             value={stats.totalBookings}
             icon="🎫"
             color="border-green-500"
+            loading={stats.loading}
           />
           <StatCard
             title="Total Airplanes"
             value={stats.totalAirplanes}
             icon="🛩️"
             color="border-purple-500"
+            loading={stats.loading}
           />
         </div>
 
@@ -152,9 +170,9 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl shadow-md p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">System Status</h2>
           <div className="space-y-3">
-            <ServiceStatusItem name="API Gateway" isOnline={serviceStatus.gateway} />
-            <ServiceStatusItem name="Flights Service" isOnline={serviceStatus.flights} />
-            <ServiceStatusItem name="Booking Service" isOnline={serviceStatus.booking} />
+            <ServiceStatusItem name="API Gateway" isOnline={serviceStatus.gateway} loading={serviceStatus.loading} />
+            <ServiceStatusItem name="Flights Service" isOnline={serviceStatus.flights} loading={serviceStatus.loading} />
+            <ServiceStatusItem name="Booking Service" isOnline={serviceStatus.booking} loading={serviceStatus.loading} />
           </div>
         </div>
       </div>
